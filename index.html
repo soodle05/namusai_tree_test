@@ -362,7 +362,7 @@ function show(id){
     fan.appendChild(el);
     return el;
   });
-  let front = 2; // index in ids of the card at center
+  let front = Math.floor(Math.random()*5); // random tree in front on each visit
   function layout(){
     cards.forEach((el,i)=>{
       const offset = ((i - front + 2) % 5 + 5) % 5; // 0..4 slot
