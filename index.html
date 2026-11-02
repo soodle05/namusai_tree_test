@@ -49,7 +49,11 @@
   .intro p.lead{margin:20px auto 0;max-width:30em;font-family:"Gowun Batang",serif;font-size:16px;line-height:1.85;color:var(--ink-soft)}
   .fan{position:relative;height:230px;margin:34px auto 30px;width:100%;max-width:360px}
   .fan img{position:absolute;left:50%;top:0;width:118px;aspect-ratio:591/1063;object-fit:cover;border-radius:8px;
-    box-shadow:0 10px 24px -10px rgba(30,43,34,.45);transform-origin:50% 120%;border:3px solid #fff;background:#fff}
+    box-shadow:0 10px 24px -10px rgba(30,43,34,.45);transform-origin:50% 120%;border:3px solid #fff;background:#fff;
+    cursor:pointer;transition:transform .55s cubic-bezier(.2,.7,.2,1),box-shadow .3s;-webkit-tap-highlight-color:transparent;user-select:none}
+  .fan img[data-slot="2"]{box-shadow:0 18px 32px -12px rgba(30,43,34,.55)}
+  .fan:focus-visible{outline:3px solid var(--moss);outline-offset:6px;border-radius:12px}
+  .fan-hint{font-size:12.5px;color:var(--ink-soft);margin:-18px 0 22px}
   .meta-row{display:flex;justify-content:center;gap:18px;font-size:13px;color:var(--ink-soft);margin-bottom:26px}
   .meta-row span::before{content:"· ";color:var(--moss)}
   .meta-row span:first-child::before{content:""}
@@ -124,6 +128,17 @@
   .actions{display:flex;gap:10px;width:100%;margin:6px 0 14px}
   .actions .btn{flex:1}
   .toast{font-size:13px;color:var(--moss);min-height:18px;margin-bottom:18px}
+  .save-btn{max-width:none;margin:6px 0 10px}
+  .save-btn[disabled]{opacity:.6;cursor:wait}
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(20,28,22,.62);display:flex;align-items:center;justify-content:center;padding:18px;animation:fade .25s ease}
+  .modal[hidden]{display:none}
+  .modal-box{background:var(--paper);border-radius:18px;padding:20px 18px 16px;width:100%;max-width:420px;max-height:100%;display:flex;flex-direction:column;text-align:center}
+  .modal-box h3{font-family:"Gowun Batang",serif;font-size:17px;margin-bottom:12px}
+  .modal-img{flex:1;min-height:0;display:flex;justify-content:center}
+  .modal-img img{max-width:100%;max-height:62vh;border-radius:10px;box-shadow:0 10px 30px -12px rgba(0,0,0,.45);-webkit-touch-callout:default}
+  .modal-hint{font-size:12.5px;color:var(--ink-soft);margin:12px 0 4px}
+  .modal .actions{margin:8px 0 0}
+  .modal .btn-primary{padding:13px 20px;font-size:15px;text-decoration:none;text-align:center;max-width:none;margin:0}
 
   .gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;align-items:start}
   .gallery button{border:0;background:none;padding:0;cursor:pointer;font:inherit;color:inherit;text-align:center}
@@ -160,7 +175,8 @@
     <div class="eyebrow">나의 독서 나무는 무엇일까?</div>
     <h1 id="intro-title">나무사이<br>독서 성향 테스트</h1>
     <p class="lead">평소 나의 독서 성향에 가장 가까운 답을 골라<br>나만의 독서 나무를 찾아보세요.</p>
-    <div class="fan" id="fan" aria-hidden="true"></div>
+    <div class="fan" id="fan" role="button" tabindex="0" aria-label="다음 나무 카드 보기"></div>
+    <div class="fan-hint">카드를 눌러 다섯 가지 나무를 만나 보세요</div>
     <div class="meta-row"><span>7개의 질문</span><span>약 1분</span><span>5가지 나무</span></div>
     <button class="btn btn-primary" id="start">테스트 시작하기</button>
   </section>
@@ -207,6 +223,7 @@
       <div class="scores" id="scores"></div>
     </div>
 
+    <button class="btn btn-primary save-btn" id="save">나의 독서 나무 이미지로 저장</button>
     <div class="actions">
       <button class="btn btn-ghost" id="share">결과 링크 복사</button>
       <button class="btn btn-ghost" id="retry">다시 하기</button>
@@ -218,6 +235,18 @@
       <div class="gallery" id="gallery"></div>
     </div>
   </section>
+
+  <div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <h3 id="modal-title">나의 독서 나무 이미지</h3>
+      <div class="modal-img"><img id="modal-img" alt="나의 독서 나무 결과 이미지"></div>
+      <p class="modal-hint">저장이 안 되면 이미지를 <b>길게 눌러</b> 저장하세요</p>
+      <div class="actions">
+        <button class="btn btn-ghost" id="modal-close">닫기</button>
+        <a class="btn btn-primary" id="modal-dl" download="나무사이_독서나무.png" href="#">저장하기</a>
+      </div>
+    </div>
+  </div>
 
   <footer>
     나무의 성장을 위한 존중의 거리, 나무 사이처럼<br>
@@ -319,17 +348,40 @@ function show(id){
   window.scrollTo({top:0,behavior:'instant' in window ? 'instant' : 'auto'});
 }
 
-/* intro card fan */
+/* intro card fan — tap to bring the next tree to the front */
 (function(){
   const fan = $('#fan');
-  const rots = [-24,-12,0,12,24];
-  ['meta','birch','willow','cherry','pine'].forEach((id,i)=>{
+  const SLOTS = [ // left-outer, left, center, right, right-outer
+    {r:-24,z:3,y:0},{r:-12,z:4,y:0},{r:0,z:5,y:-6},{r:12,z:4,y:0},{r:24,z:3,y:0}
+  ];
+  const ids = ['meta','birch','willow','cherry','pine'];
+  const cards = ids.map(id=>{
     const el = document.createElement('img');
     el.src = IMGS[`${id}-front`]; el.alt='';
-    el.style.transform = `translateX(-50%) rotate(${rots[i]}deg)`;
-    el.style.zIndex = i===2?5:(i===1||i===3?4:3);
+    el.draggable = false;
     fan.appendChild(el);
+    return el;
   });
+  let front = 2; // index in ids of the card at center
+  function layout(){
+    cards.forEach((el,i)=>{
+      const offset = ((i - front + 2) % 5 + 5) % 5; // 0..4 slot
+      const s = SLOTS[offset];
+      el.style.transform = `translateX(-50%) translateY(${s.y}px) rotate(${s.r}deg)`;
+      el.style.zIndex = s.z;
+      el.dataset.slot = offset;
+    });
+  }
+  function bring(i){ front = (i+5)%5; layout(); }
+  cards.forEach((el,i)=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    bring(i===front ? front+1 : i);
+  }));
+  fan.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '||e.key==='ArrowRight'){e.preventDefault();bring(front+1)}
+    else if(e.key==='ArrowLeft'){e.preventDefault();bring(front-1)}
+  });
+  layout();
 })();
 
 function startQuiz(){
@@ -398,8 +450,10 @@ function renderTie(keys){
   show('s-tie');
 }
 
+let myKey = null;
 function showResult(k, shared=false){
   const t = TREES[k];
+  myKey = shared ? null : k;
   $('#r-eyebrow').textContent = shared ? '친구의 독서 나무는' : '당신의 독서 나무는';
   $('#r-name').textContent = t.name;
   $('#r-tags').textContent = t.tags.map(x=>'#'+x).join('  ');
@@ -430,6 +484,7 @@ function showResult(k, shared=false){
 
   $('#retry').textContent = shared ? '나도 테스트하기' : '다시 하기';
   $('#share').hidden = shared;
+  $('#save').hidden = shared;
   $('#toast').textContent = '';
   renderGallery(k);
   setHash(t.id);
@@ -478,6 +533,85 @@ $('#share').addEventListener('click', async ()=>{
   try{ await navigator.clipboard.writeText(url); $('#toast').textContent = '결과 링크를 복사했어요. 친구에게 나의 나무를 소개해 보세요!'; }
   catch(e){ $('#toast').textContent = url; }
 });
+
+/* ---------- save result as image ---------- */
+function loadImg(src){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
+function rr(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+async function buildImage(k){
+  const t = TREES[k], W=1080, H=1920;
+  try{ await Promise.all([
+    document.fonts.load('700 80px "Gowun Batang"'), document.fonts.load('400 40px "Gowun Batang"'),
+    document.fonts.load('400 40px "Gowun Dodum"'), document.fonts.load('400 60px "Nanum Pen Script"')]); }catch(e){}
+  const [front, back, logo] = await Promise.all([loadImg(img(t,'front')), loadImg(img(t,'back')), loadImg($('header.top img').src)]);
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const x = c.getContext('2d');
+  // paper background + faint grain
+  x.fillStyle='#F4F0E6'; x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(120,100,60,.05)'; for(let gx=46; gx<W; gx+=47) x.fillRect(gx,0,1,H);
+  // header
+  const lh=86, lw=logo.width*lh/logo.height; x.drawImage(logo,60,52,lw,lh);
+  x.fillStyle='#4A574D'; x.font='400 30px "Gowun Batang", serif'; x.textAlign='right'; x.textBaseline='middle';
+  x.fillText('나무사이 독서 성향 테스트', W-60, 95);
+  // title
+  x.textAlign='center'; x.textBaseline='alphabetic';
+  x.fillStyle='#3F5E45'; x.font='400 58px "Nanum Pen Script", cursive'; x.fillText('나의 독서 나무는', W/2, 245);
+  x.fillStyle='#1E2B22'; x.font='700 92px "Gowun Batang", serif'; x.fillText(t.name, W/2, 345);
+  x.fillStyle='#4A574D'; x.font='400 36px "Gowun Dodum", sans-serif'; x.fillText(t.tags.map(v=>'#'+v).join('   '), W/2, 408);
+  // cards (front + back)
+  const cw=450, ch=Math.round(cw*1063/591), cy=460, gap=40, cx1=(W-cw*2-gap)/2, cx2=cx1+cw+gap;
+  [[front,cx1],[back,cx2]].forEach(([im,cx])=>{
+    x.save(); x.shadowColor='rgba(30,43,34,.35)'; x.shadowBlur=36; x.shadowOffsetY=16;
+    rr(x,cx,cy,cw,ch,18); x.fillStyle='#fff'; x.fill(); x.restore();
+    x.save(); rr(x,cx,cy,cw,ch,18); x.clip(); x.drawImage(im,cx,cy,cw,ch); x.restore();
+  });
+  // score panel
+  const py=cy+ch+50, ph=H-py-130, px=60, pw=W-120;
+  rr(x,px,py,pw,ph,24); x.fillStyle='#FBF9F3'; x.fill(); x.strokeStyle='#D6CDB9'; x.lineWidth=2; x.stroke();
+  x.textAlign='left'; x.fillStyle='#1E2B22'; x.font='700 36px "Gowun Batang", serif'; x.fillText('나의 독서 성향 분포', px+44, py+70);
+  const scores = lastScores || {};
+  const rowTop=py+130, rowGap=(ph-170)/4, labelW=300, tx=px+44+labelW, tw=pw-88-labelW-60;
+  ORDER.forEach((key,i)=>{
+    const tt=TREES[key], y=rowTop+i*rowGap, me=key===k, n=scores[key]||0;
+    x.fillStyle = me ? '#1E2B22' : '#4A574D';
+    x.font = (me?'700 ':'400 ')+'34px "Gowun Dodum", sans-serif'; x.textBaseline='middle';
+    x.fillText(tt.name, px+44, y);
+    rr(x,tx,y-11,tw,22,11); x.fillStyle='#EBE5D6'; x.fill();
+    if(n>0){ rr(x,tx,y-11,Math.max(22,tw*n/QUESTIONS.length),22,11); x.fillStyle=tt.color; x.fill(); }
+    x.textAlign='right'; x.fillStyle = me ? '#1E2B22' : '#4A574D'; x.fillText(String(n), px+pw-44, y); x.textAlign='left';
+  });
+  // footer
+  x.textAlign='center'; x.textBaseline='alphabetic'; x.fillStyle='#4A574D'; x.font='400 28px "Gowun Batang", serif';
+  x.fillText('책과 사람 사이 서로의 성장을 돕는 나무사이', W/2, H-78);
+  x.font='400 24px "Gowun Dodum", sans-serif'; x.fillStyle='#7A857C';
+  x.fillText(location.host ? location.host + location.pathname.replace(/index\.html$/,'') : 'Between the Trees', W/2, H-40);
+  return await new Promise(res=>c.toBlob(res,'image/png'));
+}
+let modalUrl = null;
+$('#save').addEventListener('click', async ()=>{
+  if(!myKey) return;
+  const btn=$('#save'); btn.disabled=true; const label=btn.textContent; btn.textContent='이미지를 만드는 중…';
+  try{
+    const blob = await buildImage(myKey);
+    if(modalUrl) URL.revokeObjectURL(modalUrl);
+    modalUrl = URL.createObjectURL(blob);
+    const fname = `나무사이_독서나무_${TREES[myKey].name}.png`;
+    $('#modal-img').src = modalUrl;
+    const dl=$('#modal-dl'); dl.href=modalUrl; dl.download=fname;
+    dl.onclick = async (e)=>{
+      const file = new File([blob], fname, {type:'image/png'});
+      if(navigator.canShare && navigator.canShare({files:[file]}) && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)){
+        e.preventDefault();
+        try{ await navigator.share({files:[file], title:'나의 독서 나무'}); }catch(err){}
+      }
+    };
+    $('#modal').hidden=false; $('#modal-close').focus();
+  }catch(e){
+    $('#toast').textContent='이미지를 만들지 못했어요. 화면을 캡처해서 저장해 주세요.';
+  }finally{ btn.disabled=false; btn.textContent=label; }
+});
+$('#modal-close').addEventListener('click', ()=>{ $('#modal').hidden=true; $('#save').focus(); });
+$('#modal').addEventListener('click', e=>{ if(e.target.id==='modal') $('#modal').hidden=true; });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') $('#modal').hidden=true; });
 
 /* deep link: #pine, #willow, #birch, #cherry, #meta */
 function route(){
