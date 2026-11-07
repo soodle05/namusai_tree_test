@@ -10,7 +10,7 @@
 <meta property="og:site_name" content="나무사이 Between the Trees">
 <meta property="og:title" content="나무사이 독서 성향 테스트 · 나의 독서 나무 찾기">
 <meta property="og:description" content="7개의 질문으로 찾는 나의 독서 나무. 소나무, 수양버들, 자작나무, 벚나무, 메타세쿼이아 중 당신은?">
-<meta property="og:image" content="https://soodle05.github.io/namusai_tree_test/og-main.jpg">
+<meta property="og:image" content="https://namusai-tree-test.pages.dev/og-main.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -18,6 +18,11 @@
 <link rel="preload" as="image" href="logo.png">
 <script>
 /* ---------- analytics (GA4). Put the measurement ID (G-XXXXXXX) here to turn it on ---------- */
+/* old GitHub Pages address → move visitors to the main site, keeping the result hash */
+if (/\.github\.io$/.test(location.hostname)) {
+  const rest = location.pathname.replace(/^\/namusai_tree_test\/?/, '').replace(/\.html$/, '').replace(/^index$/, '');
+  location.replace('https://namusai-tree-test.pages.dev/' + rest + location.search + location.hash);
+}
 window.GA_ID = '';
 window.dataLayer = window.dataLayer || [];
 function gtag(){ dataLayer.push(arguments); }
@@ -183,6 +188,7 @@ function track(name, params){ try{ if (/^G-[A-Z0-9]+$/.test(GA_ID)) gtag('event'
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important}
   }
+  [hidden]{display:none!important}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 </head>
@@ -496,6 +502,7 @@ function showResult(k, shared=false){
   } else panel.hidden = true;
 
   $('#retry').textContent = shared ? '나도 테스트하기' : '다시 하기';
+  $('#retry').className = shared ? 'btn btn-primary' : 'btn btn-ghost';
   $('#share').hidden = shared;
   $('#save').hidden = shared;
   $('#toast').textContent = '';
@@ -544,7 +551,7 @@ $('#flip').addEventListener('click', ()=>{
 });
 $('#share').addEventListener('click', async ()=>{
   if(!myKey) return;
-  const url = baseUrl() + TREES[myKey].id + '.html';
+  const url = baseUrl() + TREES[myKey].id;
   track('copy_link', {tree: TREES[myKey].id});
   try{ await navigator.clipboard.writeText(url); $('#toast').textContent = '결과 링크를 복사했어요. 친구에게 나의 나무를 소개해 보세요!'; }
   catch(e){ $('#toast').textContent = url; }
