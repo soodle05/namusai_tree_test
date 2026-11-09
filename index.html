@@ -23,7 +23,7 @@ if (/\.github\.io$/.test(location.hostname)) {
   const rest = location.pathname.replace(/^\/namusai_tree_test\/?/, '').replace(/\.html$/, '').replace(/^index$/, '');
   location.replace('https://namusai-tree-test.pages.dev/' + rest + location.search + location.hash);
 }
-window.GA_ID = '';
+window.GA_ID = 'G-SVXX6SBRBH';
 window.dataLayer = window.dataLayer || [];
 function gtag(){ dataLayer.push(arguments); }
 if (/^G-[A-Z0-9]+$/.test(GA_ID)) {
@@ -189,6 +189,7 @@ function track(name, params){ try{ if (/^G-[A-Z0-9]+$/.test(GA_ID)) gtag('event'
     *{animation:none!important;transition:none!important}
   }
   [hidden]{display:none!important}
+  footer .notice{margin-top:10px;font-size:11px;opacity:.75;font-family:"Gowun Dodum",sans-serif}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 </head>
@@ -280,6 +281,7 @@ function track(name, params){ try{ if (/^G-[A-Z0-9]+$/.test(GA_ID)) gtag('event'
   <footer>
     나무의 성장을 위한 존중의 거리, 나무 사이처럼<br>
     책과 사람 사이 서로의 성장을 돕는 <b>나무사이</b>
+    <div class="notice">이 사이트는 방문 통계를 위해 Google Analytics(쿠키)를 사용합니다. 개인을 식별하는 정보는 수집하지 않아요.</div>
   </footer>
 </div>
 
